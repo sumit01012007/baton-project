@@ -20,6 +20,15 @@ baton/
 ```
 Windows: `cd backend && pip install -r requirements.txt && uvicorn main:app --port 8000`.
 
+## Deploy the Streamlit interface
+Select `streamlit_app.py` as the Streamlit app file and install dependencies from `requirements.txt`.
+Deploy the FastAPI backend separately, then add these values under the Streamlit app's Secrets:
+```toml
+BATON_API_URL = "https://your-backend.example.com"
+REVIEWER_KEY = "your-backend-reviewer-key"
+```
+The Streamlit interface calls the backend's `/api` endpoints; the static browser interface remains in `frontend/`.
+
 ## AI integration
 Set `ANTHROPIC_API_KEY` (see `.env.example`) and click **Re-extract with Claude** on the Review tab.
 Claude returns claims with verbatim quotes; `verifier.py` then checks each quote exists in its source.
