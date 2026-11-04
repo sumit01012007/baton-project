@@ -1,0 +1,239 @@
+{
+ "sources": [
+  {
+   "id": "S1",
+   "name": "meeting-notes-2026-09-12.md",
+   "kind": "Meeting notes",
+   "lvl": 1,
+   "auth": false,
+   "text": "Payments sync – 12 Sep\nAttendees: Priya, Marcus, Jo, Sam\n\nDecision: migrate to the v3 API before the Nov 30 sunset.\nRejected Go rewrite: no one on the team maintains Go.\nCutover Nov 18, agreed by all.\nRecurring: Monday sandbox reset breaks webhooks.\nPriya leaves Oct 31; WH-17 needs a new owner."
+  },
+  {
+   "id": "S2",
+   "name": "#payments chat export (Oct 2026)",
+   "kind": "Chat",
+   "lvl": 1,
+   "auth": false,
+   "text": "Oct 14 Jo: sandbox webhooks die after Monday reset, re-register the endpoint\nOct 20 Sam: refund endpoint still has no idempotency key, double refunds possible\nOct 22 Marcus: heads up, pushing cutover to Nov 25 because of the audit freeze\nOct 27 Priya: WH-17 is about 60% done, retry backoff left"
+  },
+  {
+   "id": "S3",
+   "name": "tasks.csv (board export)",
+   "kind": "Task board",
+   "lvl": 1,
+   "auth": true,
+   "text": "id,title,owner,status,progress\nWH-17,Webhook retry rewrite,Priya,In progress,60%\nRF-04,Idempotency keys for refunds,Sam,Blocked,10%\nCUT-01,Production cutover,Marcus,Planned,0%"
+  },
+  {
+   "id": "S4",
+   "name": "GitHub PR #142 (merged)",
+   "kind": "Repository",
+   "lvl": 0,
+   "auth": true,
+   "text": "PR #142: Add v3 client behind feature flag PAY_V3 (merged Oct 9)\nTODO: idempotency for refunds before enabling PAY_V3 in prod"
+  },
+  {
+   "id": "S5",
+   "name": "vendor-contract-notes.md",
+   "kind": "Contract notes",
+   "lvl": 2,
+   "auth": true,
+   "text": "Vendor: PayCo\nDana Whitfield (vendor AM) offered 12% discount if volume commit signed by Dec 1\nContract auto-renews Dec 15 at current rate; 90-day notice required"
+  },
+  {
+   "id": "S6",
+   "name": "runbook.md",
+   "kind": "Runbook",
+   "lvl": 1,
+   "auth": false,
+   "text": "reconcile.sh runs nightly on ops-box-2, owner: Marcus (infra)\nIf it fails, rerun manually and post in #payments."
+  },
+  {
+   "id": "S7",
+   "name": "README.md",
+   "kind": "Repository",
+   "lvl": 0,
+   "auth": true,
+   "text": "Payments service exposes /charge, /refund and /webhook endpoints."
+  }
+ ],
+ "claims": [
+  {
+   "id": 1,
+   "type": "Decision",
+   "date": "Sep 12",
+   "text": "Migrate from the legacy API to v3 before the Nov 30 sunset.",
+   "src": [
+    [
+     "S1",
+     "migrate to the v3 API before the Nov 30 sunset"
+    ],
+    [
+     "S4",
+     "Add v3 client behind feature flag PAY_V3"
+    ]
+   ]
+  },
+  {
+   "id": 2,
+   "type": "Decision",
+   "date": "Sep 12",
+   "text": "A Go rewrite was considered and rejected because nobody maintains Go.",
+   "src": [
+    [
+     "S1",
+     "Rejected Go rewrite: no one on the team maintains Go"
+    ]
+   ]
+  },
+  {
+   "id": 3,
+   "type": "Conflict",
+   "date": "Oct 22",
+   "conflict": 1,
+   "text": "Cutover date is disputed: Nov 18 (meeting notes) versus Nov 25 (chat, audit freeze).",
+   "src": [
+    [
+     "S1",
+     "Cutover Nov 18"
+    ],
+    [
+     "S2",
+     "pushing cutover to Nov 25"
+    ]
+   ]
+  },
+  {
+   "id": 4,
+   "type": "Ownership",
+   "text": "WH-17 webhook retry rewrite is ~60% done and its owner (Priya) is leaving, so it needs a new owner.",
+   "src": [
+    [
+     "S3",
+     "WH-17,Webhook retry rewrite,Priya,In progress,60%"
+    ],
+    [
+     "S1",
+     "WH-17 needs a new owner"
+    ]
+   ]
+  },
+  {
+   "id": 5,
+   "type": "Risk",
+   "text": "Refund endpoint has no idempotency key, so duplicate refunds are possible; the PR says to fix this before enabling PAY_V3 in prod.",
+   "src": [
+    [
+     "S2",
+     "refund endpoint still has no idempotency key"
+    ],
+    [
+     "S4",
+     "idempotency for refunds before enabling PAY_V3"
+    ]
+   ]
+  },
+  {
+   "id": 6,
+   "type": "Dependency",
+   "text": "Nightly reconciliation job runs on ops-box-2 and is owned by Marcus (infra).",
+   "src": [
+    [
+     "S6",
+     "reconcile.sh runs nightly on ops-box-2, owner: Marcus"
+    ]
+   ]
+  },
+  {
+   "id": 7,
+   "type": "Recurring problem",
+   "text": "Sandbox webhooks break after the Monday reset; workaround is to re-register the endpoint.",
+   "src": [
+    [
+     "S1",
+     "Monday sandbox reset breaks webhooks"
+    ],
+    [
+     "S2",
+     "re-register the endpoint"
+    ]
+   ]
+  },
+  {
+   "id": 8,
+   "type": "Next action",
+   "text": "Reassign WH-17 and finish the retry backoff.",
+   "src": [
+    [
+     "S3",
+     "WH-17,Webhook retry rewrite"
+    ],
+    [
+     "S2",
+     "retry backoff left"
+    ]
+   ]
+  },
+  {
+   "id": 9,
+   "type": "Next action",
+   "text": "Unblock RF-04 (idempotency keys) before cutover.",
+   "src": [
+    [
+     "S3",
+     "RF-04,Idempotency keys for refunds,Sam,Blocked"
+    ]
+   ]
+  },
+  {
+   "id": 10,
+   "type": "Gap",
+   "text": "No source says who approves partial-refund policy changes. Needs a human answer.",
+   "src": []
+  },
+  {
+   "id": 11,
+   "type": "Overview",
+   "text": "The service exposes /charge, /refund and /webhook endpoints.",
+   "src": [
+    [
+     "S7",
+     "exposes /charge, /refund and /webhook endpoints"
+    ]
+   ]
+  },
+  {
+   "id": 12,
+   "type": "Risk",
+   "text": "A load test reached 2,000 TPS with zero errors.",
+   "src": [
+    [
+     "S2",
+     "load test hit 2000 TPS with zero errors"
+    ]
+   ]
+  },
+  {
+   "id": 13,
+   "type": "Contact",
+   "text": "Vendor AM Dana Whitfield offered a 12% discount if a volume commit is signed by Dec 1.",
+   "src": [
+    [
+     "S5",
+     "offered 12% discount if volume commit signed by Dec 1"
+    ]
+   ]
+  },
+  {
+   "id": 14,
+   "type": "Risk",
+   "text": "Vendor contract auto-renews Dec 15 and needs 90 days’ notice to exit.",
+   "src": [
+    [
+     "S5",
+     "auto-renews Dec 15"
+    ]
+   ]
+  }
+ ]
+}
