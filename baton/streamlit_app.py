@@ -1,24 +1,30 @@
-"""Streamlit interface for the Baton FastAPI service.
-
-Configure BATON_API_URL in Streamlit secrets with the deployed backend URL.
-"""
+"""Streamlit interface for the Baton FastAPI service."""
 import os
 
 import requests
 import streamlit as st
 
 
-st.set_page_config(page_title="Baton handover", page_icon="🧭", layout="wide")
-st.title("Baton")
+st.set_page_config(page_title="Baton | Project handover", page_icon="🧭", layout="wide")
+st.markdown("""
+<style>
+.block-container {max-width: 1180px; padding-top: 2rem;}
+[data-testid="stMetric"] {background: #f4f7fb; border: 1px solid #e4eaf2; padding: 14px 18px; border-radius: 12px;}
+.stTabs [data-baseweb="tab-list"] {gap: 12px;}
+</style>
+""", unsafe_allow_html=True)
+st.title("🧭 Baton")
 st.caption("Evidence-linked, permission-aware project handover")
 
-api_url = str(st.secrets.get("BATON_API_URL", os.getenv("BATON_API_URL", ""))).rstrip("/")
+api_url = str(st.secrets.get("BATON_API_URL", os.getenv("BATON_API_URL", "http://localhost:8000"))).rstrip("/")
 reviewer_key = str(st.secrets.get("REVIEWER_KEY", os.getenv("REVIEWER_KEY", "demo-reviewer")))
 
-if not api_url:
-    st.error("Set BATON_API_URL in Streamlit app settings → Secrets to your deployed FastAPI URL.")
-    st.code('BATON_API_URL = "https://your-backend.example.com"\nREVIEWER_KEY = "your-reviewer-key"', language="toml")
-    st.stop()
+with st.sidebar:
+    st.header("Connection")
+    st.code(api_url, language=None)
+    st.caption("Local default: http://localhost:8000")
+    st.divider()
+    st.caption("For Streamlit Cloud, set BATON_API_URL and REVIEWER_KEY in app Secrets.")
 
 
 def api(path, method="GET", **kwargs):
@@ -41,7 +47,11 @@ def api(path, method="GET", **kwargs):
 try:
     state = api("/state")
 except Exception as exc:
-    st.error(f"Could not connect to the Baton API: {exc}")
+    st.error("Could not connect to the Baton API.")
+    st.caption(f"{exc}")
+    st.markdown("Start the backend in a second terminal, then refresh this page:")
+    st.code("cd backend\npip install -r requirements.txt\nuvicorn main:app --reload --port 8000", language="powershell")
+    st.markdown("For a hosted backend, configure `BATON_API_URL` in Streamlit Secrets.")
     st.stop()
 
 review_tab, handover_tab, sources_tab = st.tabs(["Review", "Handover", "Sources"])
@@ -49,14 +59,29 @@ review_tab, handover_tab, sources_tab = st.tabs(["Review", "Handover", "Sources"
 with review_tab:
     claims = state["claims"]
     reviewed = sum(claim["r"] != "pending" for claim in claims)
-    st.subheader("Handover readiness")
-    st.progress(reviewed / max(len(claims), 1), text=f"{reviewed} of {len(claims)} claims reviewed")
-    st.caption(f"AI: {state['ai_mode']} · Storage: {state['storage']}")
+    attention = sum(claim["r"] == "pending" and claim["status"] in ("blocked", "conflict", "missing") for claim in claims)
+    m1, m2, m3, m4 = st.columns(4)
+    m1.metric("Claims", len(claims))
+    m2.metric("Reviewed", f"{reviewed}/{len(claims)}")
+    m3.metric("Need attention", attention)
+    m4.metric("Handover", "Published" if state["published"] else "Draft")
+    st.progress(reviewed / max(len(claims), 1), text="Review progress")
+    st.caption(f"AI mode: {state['ai_mode']} · Storage: {state['storage']}")
     for claim in claims:
-        title = f"{claim['type']} · {claim['status'].title()} · {claim['r'].title()}"
+        title = f"{claim['type']}  ·  {claim['status'].title()}  ·  {claim['r'].title()}"
         with st.expander(title, expanded=claim["r"] == "pending"):
             st.write(claim["text"])
-            st.caption(f"Sensitivity level: {claim['lvl']} · Sources: {', '.join(src for src, _ in claim.get('src', [])) or 'None'}")
+            levels = ["Public", "Team", "Confidential"]
+            st.caption(f"{claim.get('date') or 'Undated'} · {levels[claim['lvl']]} sensitivity")
+            for source_id, quote in claim.get("src", []):
+                with st.expander(f"Evidence · {source_id}"):
+                    st.markdown(f"> {quote}")
+                    try:
+                        source = api(f"/source/{source_id}?role=Reviewer")
+                        st.caption(source["name"])
+                        st.text(source["text"])
+                    except Exception as exc:
+                        st.caption(f"Could not load source: {exc}")
             if claim["r"] == "pending":
                 col1, col2 = st.columns(2)
                 blocked = claim["status"] in ("blocked", "conflict", "missing")
@@ -80,7 +105,7 @@ with review_tab:
                     except Exception as exc:
                         st.error(str(exc))
 
-    if st.button("Re-run extraction"):
+    if st.button("Re-run extraction", help="Rebuild claims from the current sources"):
         try:
             api("/extract", "POST")
             st.rerun()
@@ -103,15 +128,24 @@ with handover_tab:
         if not handover.get("published"):
             st.info("No approved handover has been published yet.")
         else:
-            st.subheader(f"Handover v{handover['version']}")
+            st.subheader(f"Handover v{handover['version']} · {role}")
             st.caption(f"{len(handover['visible'])} items visible · {handover['withheld']} withheld by clearance")
-            for heading, items in [("5-day continuation plan", [item for _, group in handover["plan"] for item in group]),
-                                   ("Decisions and context", handover["context"]),
-                                   ("Timeline", handover["timeline"])]:
-                st.markdown(f"#### {heading}")
+            st.markdown("### 5-day continuation plan")
+            for day, items in handover["plan"]:
+                with st.expander(day, expanded=True):
+                    if items:
+                        for item in items:
+                            st.markdown(f"- **{item.get('type', 'Task')}:** {item['text']}")
+                    else:
+                        st.caption("No items for this phase.")
+            for heading, items in [("Decisions and context", handover["context"]), ("Timeline", handover["timeline"])]:
+                st.markdown(f"### {heading}")
                 if items:
                     for item in items:
-                        st.write(f"**{item.get('date', '')}** {item['text']}")
+                        with st.container(border=True):
+                            if item.get("date"):
+                                st.caption(item["date"])
+                            st.write(item["text"])
                 else:
                     st.caption("No items to show.")
             if not handover["acks"].get(role):
@@ -137,5 +171,8 @@ with sources_tab:
             st.rerun()
         except Exception as exc:
             st.error(str(exc))
+    st.subheader(f"Available sources ({len(state['sources'])})")
     for source in state["sources"]:
-        st.write(f"**{source['id']} · {source['name']}** — {source['kind']} · {['Public', 'Team', 'Confidential'][source['lvl']]}")
+        with st.container(border=True):
+            st.write(f"**{source['id']} · {source['name']}**")
+            st.caption(f"{source['kind']} · {['Public', 'Team', 'Confidential'][source['lvl']]} access")
